@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Ejercicios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+  <h1 class="text-3xl font-bold mb-6">Control de Ejercicios</h1>
+  
+  <!-- Formulario para agregar ejercicio -->
+  <div class="w-full max-w-md bg-white p-6 rounded-lg shadow-md mb-6">
+    <h2 class="text-xl font-semibold mb-4">Agregar Ejercicio</h2>
+    <div class="space-y-4">
+      <select id="category" onchange="updateExercises()" class="w-full p-2 border rounded">
+        <option value="">Selecciona una categoría</option>
+        <option value="Pierna">Pierna</option>
+        <option value="Pecho">Pecho</option>
+        <option value="Espalda">Espalda</option>
+        <option value="Brazos">Brazos</option>
+        <option value="Core">Core</option>
+        <option value="Otro">Otro (manual)</option>
+      </select>
+      <select id="exerciseName" class="w-full p-2 border rounded hidden" onchange="checkManualInput()">
+        <option value="">Selecciona un ejercicio</option>
+      </select>
+      <input id="manualExercise" type="text" placeholder="Nombre del ejercicio (si es manual)" class="w-full p-2 border rounded hidden">
+      <input id="sets" type="number" placeholder="Series" min="1" class="w-full p-2 border rounded">
+      <input id="reps" type="number" placeholder="Repeticiones" min="1" class="w-full p-2 border rounded">
+      <input id="rest" type="number" placeholder="Descanso (segundos)" min="0" class="w-full p-2 border rounded">
+      <button onclick="addExercise()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Agregar</button>
+    </div>
+  </div>
+
+  <!-- Lista de ejercicios -->
+  <div id="exerciseList" class="w-full max-w-md space-y-4"></div>
+
+  <script>
+    const exerciseCategories = {
+      Pierna: ['Sentadilla', 'Peso muerto', 'Zancadas', 'Prensa de piernas'],
+      Pecho: ['Press de banca', 'Flexiones', 'Fondos', 'Aperturas con mancuernas'],
+      Espalda: ['Dominadas', 'Remo con barra', 'Peso muerto', 'Pulldown'],
+      Brazos: ['Curl de bíceps', 'Extensión de tríceps', 'Press francés', 'Curl martillo'],
+      Core: ['Plancha', 'Crunches', 'Elevaciones de piernas', 'Russian twist'],
+      Otro: []
+    };
+
+    let exercises = JSON.parse(localStorage.getItem('exercises')) || [];
+
+    function updateExercises() {
+      const category = document.getElementById('category').value;
+      const exerciseSelect = document.getElementById('exerciseName');
+      const manualInput = document.getElementById('manualExercise');
+      
+      exerciseSelect.innerHTML = '<option value="">Selecciona un ejercicio</option>';
+      exerciseSelect.classList.add('hidden');
+      manualInput.classList.add('hidden');
+
+      if (category && category !== 'Otro') {
+        exerciseSelect.classList.remove('hidden');
+        exerciseCategories[category].forEach(ex => {
+          const option = document.createElement('option');
+          option.value = ex;
+          option.textContent = ex;
+          exerciseSelect.appendChild(option);
+        });
+      } else if (category === 'Otro') {
+        manualInput.classList.remove('hidden');
+      }
+    }
+
+    function checkManualInput() {
+      const exerciseSelect = document.getElementById('exerciseName');
+      const manualInput = document.getElementById('manualExercise');
+      if (exerciseSelect.value) {
+        manualInput.classList.add('hidden');
+      }
+    }
+
+    function addExercise() {
+      const category = document.getElementById('category').value;
+      let name = document.getElementById('exerciseName').value;
+      if (category === 'Otro') {
+        name = document.getElementById('manualExercise').value;
+      }
+      const sets = parseInt(document.getElementById('sets').value);
+      const reps = parseInt(document.getElementById('reps').value);
+      const rest = parseInt(document.getElementById('rest').value);
+
+      if (category && name && sets > 0 && reps > 0) {
+        const exercise = { id: Date.now(), category, name, sets, reps, rest, completedSets: 0 };
+        exercises.push(exercise);
+        localStorage.setItem('exercises', JSON.stringify(exercises));
+        renderExercises();
+        clearForm();
+      }
+    }
+
+    function clearForm() {
+      document.getElementById('category').value = '';
+      document.getElementById('exerciseName').value = '';
+      document.getElementById('exerciseName').classList.add('hidden');
+      document.getElementById('manualExercise').value = '';
+      document.getElementById('manualExercise').classList.add('hidden');
+      document.getElementById('sets').value = '';
+      document.getElementById('reps').value = '';
+      document.getElementById('rest').value = '';
+    }
+
+    function renderExercises() {
+      const exerciseList = document.getElementById('exerciseList');
+      exerciseList.innerHTML = '';
+      exercises.forEach(exercise => {
+        const div = document.createElement('div');
+        div.className = 'bg-white p-4 rounded-lg shadow-md';
+        div.innerHTML = `
+          <h3 class="text-lg font-semibold">${exercise.category}: ${exercise.name}</h3>
+          <p>Series: ${exercise.completedSets}/${exercise.sets} | Reps: ${exercise.reps} | Descanso: ${exercise.rest}s</p>
+          <div id="timer-${exercise.id}" class="text-red-500 font-bold"></div>
+          <button onclick="completeSet(${exercise.id})" class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600 ${exercise.completedSets >= exercise.sets ? 'opacity-50 cursor-not-allowed' : ''}">
+            Marcar Serie
+          </button>
+          <button onclick="deleteExercise(${exercise.id})" class="mt-2 ml-2 bg-red-500 text-white p-2 rounded hover:bg-red-600">Eliminar</button>
+        `;
+        exerciseList.appendChild(div);
+      });
+    }
+
+    function completeSet(id) {
+      const exercise = exercises.find(ex => ex.id === id);
+      if (exercise.completedSets < exercise.sets) {
+        exercise.completedSets++;
+        localStorage.setItem('exercises', JSON.stringify(exercises));
+        renderExercises();
+        if (exercise.rest > 0) {
+          startTimer(id, exercise.rest);
+        }
+      }
+    }
+
+    function deleteExercise(id) {
+      exercises = exercises.filter(ex => ex.id !== id);
+      localStorage.setItem('exercises', JSON.stringify(exercises));
+      renderExercises();
+    }
+
+    function startTimer(id, seconds) {
+      let timeLeft = seconds;
+      const timerDisplay = document.getElementById(`timer-${id}`);
+      timerDisplay.textContent = `Descanso: ${timeLeft}s`;
+      const interval = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = `Descanso: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          clearInterval(interval);
+          timerDisplay.textContent = '';
+          new Audio('https://www.soundjay.com/buttons/beep-01a.mp3').play();
+        }
+      }, 1000);
+    }
+
+    renderExercises();
+  </script>
+</body>
+</html>
