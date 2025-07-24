@@ -13,6 +13,7 @@
   <div class="w-full max-w-md bg-white p-6 rounded-lg shadow-md mb-6">
     <h2 class="text-xl font-semibold mb-4">Agregar Ejercicio</h2>
     <div class="space-y-4">
+      <input id="userName" type="text" placeholder="Tu nombre" class="w-full p-2 border rounded">
       <select id="category" onchange="updateExercises()" class="w-full p-2 border rounded">
         <option value="">Selecciona una categoría</option>
         <option value="Pierna">Pierna</option>
@@ -34,7 +35,10 @@
   </div>
 
   <!-- Lista de ejercicios -->
-  <div id="exerciseList" class="w-full max-w-md space-y-4"></div>
+  <div class="w-full max-w-md">
+    <h2 id="routineTitle" class="text-2xl font-semibold mb-4">Tu Rutina</h2>
+    <div id="exerciseList" class="space-y-4"></div>
+  </div>
 
   <script>
     const exerciseCategories = {
@@ -47,6 +51,7 @@
     };
 
     let exercises = JSON.parse(localStorage.getItem('exercises')) || [];
+    let userName = localStorage.getItem('userName') || '';
 
     function updateExercises() {
       const category = document.getElementById('category').value;
@@ -79,6 +84,7 @@
     }
 
     function addExercise() {
+      const userNameInput = document.getElementById('userName').value;
       const category = document.getElementById('category').value;
       let name = document.getElementById('exerciseName').value;
       if (category === 'Otro') {
@@ -88,7 +94,9 @@
       const reps = parseInt(document.getElementById('reps').value);
       const rest = parseInt(document.getElementById('rest').value);
 
-      if (category && name && sets > 0 && reps > 0) {
+      if (userNameInput && category && name && sets > 0 && reps > 0) {
+        userName = userNameInput;
+        localStorage.setItem('userName', userName);
         const exercise = { id: Date.now(), category, name, sets, reps, rest, completedSets: 0 };
         exercises.push(exercise);
         localStorage.setItem('exercises', JSON.stringify(exercises));
@@ -98,6 +106,7 @@
     }
 
     function clearForm() {
+      document.getElementById('userName').value = userName;
       document.getElementById('category').value = '';
       document.getElementById('exerciseName').value = '';
       document.getElementById('exerciseName').classList.add('hidden');
@@ -109,6 +118,8 @@
     }
 
     function renderExercises() {
+      const routineTitle = document.getElementById('routineTitle');
+      routineTitle.textContent = userName ? `Rutina de ${userName}` : 'Tu Rutina';
       const exerciseList = document.getElementById('exerciseList');
       exerciseList.innerHTML = '';
       exercises.forEach(exercise => {
@@ -160,6 +171,8 @@
       }, 1000);
     }
 
+    // Cargar nombre al iniciar
+    document.getElementById('userName').value = userName;
     renderExercises();
   </script>
 </body>
