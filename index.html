@@ -5,13 +5,91 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control de Ejercicios</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .timer-container {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin-top: 8px;
+      display: inline-block;
+      text-align: center;
+    }
+    .timer-label {
+      font-size: 1.125rem; /* text-lg */
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .timer-label-series {
+      color: #22c55e; /* green-500 */
+    }
+    .timer-label-rep {
+      color: #3b82f6; /* blue-500 */
+    }
+    .timer-label-rest {
+      color: #ef4444; /* red-500 */
+    }
+    .timer-text-series {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.25rem; /* text-xl */
+      font-weight: bold;
+      color: #22c55e; /* green-500 */
+      z-index: 10;
+    }
+    .timer-text-rep {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.25rem; /* text-xl */
+      font-weight: bold;
+      color: #3b82f6; /* blue-500 */
+      z-index: 10;
+    }
+    .timer-text-rest {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.25rem; /* text-xl */
+      font-weight: bold;
+      color: #ef4444; /* red-500 */
+      z-index: 10;
+    }
+    .timer-circle-bg {
+      fill: none;
+      stroke: #e5e7eb; /* bg-gray-200 */
+      stroke-width: 10;
+    }
+    .timer-circle-series {
+      fill: none;
+      stroke: #22c55e; /* green-500 */
+      stroke-width: 10;
+    }
+    .timer-circle-rep {
+      fill: none;
+      stroke: #3b82f6; /* blue-500 */
+      stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset linear;
+    }
+    .timer-circle-rest {
+      fill: none;
+      stroke: #ef4444; /* red-500 */
+      stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset linear;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
   <h1 class="text-3xl font-bold mb-6">Control de Ejercicios</h1>
   
-  <!-- Formulario para agregar ejercicio -->
+  <!-- Formulario para agregar/editar ejercicio -->
   <div class="w-full max-w-md bg-white p-6 rounded-lg shadow-md mb-6">
-    <h2 class="text-xl font-semibold mb-4">Agregar Ejercicio</h2>
+    <h2 id="formTitle" class="text-xl font-semibold mb-4">Agregar Ejercicio</h2>
     <div class="space-y-4">
       <input id="userName" type="text" placeholder="Tu nombre" class="w-full p-2 border rounded">
       <select id="category" onchange="updateExercises()" class="w-full p-2 border rounded">
@@ -29,8 +107,12 @@
       <input id="manualExercise" type="text" placeholder="Nombre del ejercicio (si es manual)" class="w-full p-2 border rounded hidden">
       <input id="sets" type="number" placeholder="Series" min="1" class="w-full p-2 border rounded">
       <input id="reps" type="number" placeholder="Repeticiones" min="1" class="w-full p-2 border rounded">
-      <input id="rest" type="number" placeholder="Descanso (segundos)" min="0" class="w-full p-2 border rounded">
-      <button onclick="addExercise()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Agregar</button>
+      <input id="repDuration" type="number" placeholder="Duración por repetición (segundos)" min="1" value="5" class="w-full p-2 border rounded">
+      <input id="rest" type="number" step="0.1" placeholder="Descanso (minutos)" min="0" value="1" class="w-full p-2 border rounded">
+      <div class="flex space-x-2">
+        <button id="submitButton" onclick="submitExercise()" class="flex-1 bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Agregar</button>
+        <button id="cancelButton" onclick="cancelEdit()" class="flex-1 bg-gray-500 text-white p-2 rounded hover:bg-gray-600 hidden">Cancelar</button>
+      </div>
     </div>
   </div>
 
@@ -52,6 +134,8 @@
 
     let exercises = JSON.parse(localStorage.getItem('exercises')) || [];
     let userName = localStorage.getItem('userName') || '';
+    let editingExerciseId = null;
+    let activeTimers = {};
 
     function updateExercises() {
       const category = document.getElementById('category').value;
@@ -83,7 +167,7 @@
       }
     }
 
-    function addExercise() {
+    function submitExercise() {
       const userNameInput = document.getElementById('userName').value;
       const category = document.getElementById('category').value;
       let name = document.getElementById('exerciseName').value;
@@ -92,17 +176,77 @@
       }
       const sets = parseInt(document.getElementById('sets').value);
       const reps = parseInt(document.getElementById('reps').value);
-      const rest = parseInt(document.getElementById('rest').value);
+      const repDuration = parseInt(document.getElementById('repDuration').value);
+      const rest = parseFloat(document.getElementById('rest').value);
 
-      if (userNameInput && category && name && sets > 0 && reps > 0) {
+      if (userNameInput && category && name && sets > 0 && reps > 0 && repDuration > 0 && rest >= 0) {
         userName = userNameInput;
         localStorage.setItem('userName', userName);
-        const exercise = { id: Date.now(), category, name, sets, reps, rest, completedSets: 0 };
-        exercises.push(exercise);
+
+        const restInSeconds = rest * 60;
+        if (editingExerciseId) {
+          const exercise = exercises.find(ex => ex.id === editingExerciseId);
+          exercise.category = category;
+          exercise.name = name;
+          exercise.sets = sets;
+          exercise.reps = reps;
+          exercise.repDuration = repDuration;
+          exercise.rest = restInSeconds;
+          exercise.completedSets = 0;
+          exercise.currentReps = 0;
+          exercise.isRunning = false;
+        } else {
+          const exercise = { 
+            id: Date.now(), 
+            category, 
+            name, 
+            sets, 
+            reps, 
+            repDuration, 
+            rest: restInSeconds, 
+            completedSets: 0, 
+            currentReps: 0, 
+            isRunning: false 
+          };
+          exercises.push(exercise);
+        }
+
         localStorage.setItem('exercises', JSON.stringify(exercises));
         renderExercises();
-        clearForm();
+        cancelEdit();
       }
+    }
+
+    function editExercise(id) {
+      const exercise = exercises.find(ex => ex.id === id);
+      editingExerciseId = id;
+
+      document.getElementById('formTitle').textContent = 'Editar Ejercicio';
+      document.getElementById('submitButton').textContent = 'Guardar cambios';
+      document.getElementById('cancelButton').classList.remove('hidden');
+
+      document.getElementById('userName').value = userName;
+      document.getElementById('category').value = exercise.category;
+      updateExercises();
+      if (exercise.category === 'Otro') {
+        document.getElementById('manualExercise').value = exercise.name;
+        document.getElementById('manualExercise').classList.remove('hidden');
+      } else {
+        document.getElementById('exerciseName').value = exercise.name;
+        document.getElementById('exerciseName').classList.remove('hidden');
+      }
+      document.getElementById('sets').value = exercise.sets;
+      document.getElementById('reps').value = exercise.reps;
+      document.getElementById('repDuration').value = exercise.repDuration;
+      document.getElementById('rest').value = exercise.rest / 60;
+    }
+
+    function cancelEdit() {
+      editingExerciseId = null;
+      document.getElementById('formTitle').textContent = 'Agregar Ejercicio';
+      document.getElementById('submitButton').textContent = 'Agregar';
+      document.getElementById('cancelButton').classList.add('hidden');
+      clearForm();
     }
 
     function clearForm() {
@@ -114,7 +258,140 @@
       document.getElementById('manualExercise').classList.add('hidden');
       document.getElementById('sets').value = '';
       document.getElementById('reps').value = '';
-      document.getElementById('rest').value = '';
+      document.getElementById('repDuration').value = '5';
+      document.getElementById('rest').value = '1';
+    }
+
+    function startExercise(id) {
+      const exercise = exercises.find(ex => ex.id === id);
+      if (exercise.completedSets >= exercise.sets || exercise.isRunning) return;
+
+      exercise.isRunning = true;
+      localStorage.setItem('exercises', JSON.stringify(exercises));
+      runRepetition(id);
+    }
+
+    function runRepetition(id) {
+      const exercise = exercises.find(ex => ex.id === id);
+      if (exercise.completedSets >= exercise.sets || !exercise.isRunning) return;
+
+      let timeLeft = exercise.repDuration;
+      const timerText = document.getElementById(`timer-rep-${id}`);
+      const timerCircle = document.getElementById(`circle-rep-${id}`);
+      const timerRestText = document.getElementById(`timer-rest-${id}`);
+      const timerRestCircle = document.getElementById(`circle-rest-${id}`);
+      const timerSeriesText = document.getElementById(`timer-series-${id}`);
+      const circumference = 2 * Math.PI * 45; // Radio = 45px
+      timerCircle.style.strokeDasharray = circumference;
+      timerRestCircle.style.strokeDasharray = circumference;
+      timerText.textContent = `Rep ${exercise.currentReps + 1}: ${formatTime(timeLeft)}`;
+      timerRestText.textContent = '';
+      timerSeriesText.textContent = `Serie ${exercise.completedSets + 1}/${exercise.sets}`;
+      timerCircle.style.strokeDashoffset = 0;
+      timerRestCircle.style.strokeDashoffset = circumference;
+
+      activeTimers[id] = setInterval(() => {
+        timeLeft--;
+        const progressPercent = timeLeft / exercise.repDuration;
+        timerCircle.style.strokeDashoffset = circumference * (1 - progressPercent);
+        timerText.textContent = `Rep ${exercise.currentReps + 1}: ${formatTime(timeLeft)}`;
+        if (timeLeft <= 0) {
+          clearInterval(activeTimers[id]);
+          exercise.currentReps++;
+          
+          if (exercise.currentReps >= exercise.reps) {
+            exercise.completedSets++;
+            exercise.currentReps = 0;
+            localStorage.setItem('exercises', JSON.stringify(exercises));
+            if (exercise.completedSets < exercise.sets) {
+              startRest(id);
+            } else {
+              exercise.isRunning = false;
+              timerSeriesText.textContent = `Serie ${exercise.completedSets}/${exercise.sets}`;
+              localStorage.setItem('exercises', JSON.stringify(exercises));
+              renderExercises();
+            }
+          } else {
+            runRepetition(id);
+          }
+        }
+      }, 1000);
+    }
+
+    function startRest(id) {
+      const exercise = exercises.find(ex => ex.id === id);
+      let timeLeft = exercise.rest;
+      const timerText = document.getElementById(`timer-rep-${id}`);
+      const timerCircle = document.getElementById(`circle-rep-${id}`);
+      const timerRestText = document.getElementById(`timer-rest-${id}`);
+      const timerRestCircle = document.getElementById(`circle-rest-${id}`);
+      const timerSeriesText = document.getElementById(`timer-series-${id}`);
+      const circumference = 2 * Math.PI * 45; // Radio = 45px
+      timerRestCircle.style.strokeDasharray = circumference;
+      timerText.textContent = '';
+      timerRestText.textContent = `Serie ${exercise.completedSets + 1}: ${formatTime(timeLeft)}`;
+      timerSeriesText.textContent = `Serie ${exercise.completedSets + 1}/${exercise.sets}`;
+      timerCircle.style.strokeDashoffset = circumference;
+      timerRestCircle.style.strokeDashoffset = 0;
+
+      activeTimers[id] = setInterval(() => {
+        timeLeft--;
+        const progressPercent = timeLeft / exercise.rest;
+        timerRestCircle.style.strokeDashoffset = circumference * (1 - progressPercent);
+        timerRestText.textContent = `Serie ${exercise.completedSets + 1}: ${formatTime(timeLeft)}`;
+        if (timeLeft <= 0) {
+          clearInterval(activeTimers[id]);
+          timerRestText.textContent = '¡Listo!';
+          new Audio('https://www.soundjay.com/buttons/beep-01a.mp3').play();
+          setTimeout(() => {
+            if (exercise.isRunning) {
+              runRepetition(id);
+            }
+          }, 1000);
+        }
+      }, 1000);
+    }
+
+    function pauseExercise(id) {
+      const exercise = exercises.find(ex => ex.id === id);
+      if (!exercise.isRunning) return;
+
+      exercise.isRunning = false;
+      clearInterval(activeTimers[id]);
+      delete activeTimers[id];
+      const timerText = document.getElementById(`timer-rep-${id}`);
+      const timerRestText = document.getElementById(`timer-rest-${id}`);
+      const timerSeriesText = document.getElementById(`timer-series-${id}`);
+      timerText.textContent = '';
+      timerRestText.textContent = '';
+      timerSeriesText.textContent = `Serie ${exercise.completedSets}/${exercise.sets}`;
+      localStorage.setItem('exercises', JSON.stringify(exercises));
+      renderExercises();
+    }
+
+    function resetExercise(id) {
+      const exercise = exercises.find(ex => ex.id === id);
+      exercise.completedSets = 0;
+      exercise.currentReps = 0;
+      exercise.isRunning = false;
+      clearInterval(activeTimers[id]);
+      delete activeTimers[id];
+      localStorage.setItem('exercises', JSON.stringify(exercises));
+      renderExercises();
+    }
+
+    function deleteExercise(id) {
+      clearInterval(activeTimers[id]);
+      delete activeTimers[id];
+      exercises = exercises.filter(ex => ex.id !== id);
+      localStorage.setItem('exercises', JSON.stringify(exercises));
+      renderExercises();
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
 
     function renderExercises() {
@@ -126,49 +403,54 @@
         const div = document.createElement('div');
         div.className = 'bg-white p-4 rounded-lg shadow-md';
         div.innerHTML = `
-          <h3 class="text-lg font-semibold">${exercise.category}: ${exercise.name}</h3>
-          <p>Series: ${exercise.completedSets}/${exercise.sets} | Reps: ${exercise.reps} | Descanso: ${exercise.rest}s</p>
-          <div id="timer-${exercise.id}" class="text-red-500 font-bold"></div>
-          <button onclick="completeSet(${exercise.id})" class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600 ${exercise.completedSets >= exercise.sets ? 'opacity-50 cursor-not-allowed' : ''}">
-            Marcar Serie
-          </button>
-          <button onclick="deleteExercise(${exercise.id})" class="mt-2 ml-2 bg-red-500 text-white p-2 rounded hover:bg-red-600">Eliminar</button>
+          <h3 class="text-lg font-semibold">${exercise.category}: ${exercise.name} ${exercise.completedSets >= exercise.sets ? '✅' : ''}</h3>
+          <p>Series: ${exercise.completedSets}/${exercise.sets} | Repeticiones: ${exercise.currentReps}/${exercise.reps} | Descanso: ${formatTime(exercise.rest)} | Duración/Rep: ${exercise.repDuration}s</p>
+          <div class="flex space-x-4 mb-4">
+            <div class="timer-container">
+              <div class="timer-label timer-label-series">Series</div>
+              <svg width="100" height="100">
+                <circle class="timer-circle-bg" cx="50" cy="50" r="45"/>
+                <circle id="circle-series-${exercise.id}" class="timer-circle-series" cx="50" cy="50" r="45"/>
+              </svg>
+              <div id="timer-series-${exercise.id}" class="timer-text-series">Serie ${exercise.completedSets}/${exercise.sets}</div>
+            </div>
+            <div class="timer-container">
+              <div class="timer-label timer-label-rep">Repeticiones</div>
+              <svg width="100" height="100">
+                <circle class="timer-circle-bg" cx="50" cy="50" r="45"/>
+                <circle id="circle-rep-${exercise.id}" class="timer-circle-rep" cx="50" cy="50" r="45" transform="rotate(-90 50 50)"/>
+              </svg>
+              <div id="timer-rep-${exercise.id}" class="timer-text-rep"></div>
+            </div>
+            <div class="timer-container">
+              <div class="timer-label timer-label-rest">Descanso</div>
+              <svg width="100" height="100">
+                <circle class="timer-circle-bg" cx="50" cy="50" r="45"/>
+                <circle id="circle-rest-${exercise.id}" class="timer-circle-rest" cx="50" cy="50" r="45" transform="rotate(-90 50 50)"/>
+              </svg>
+              <div id="timer-rest-${exercise.id}" class="timer-text-rest"></div>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-4">
+            <button onclick="startExercise(${exercise.id})" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 ${exercise.isRunning || exercise.completedSets >= exercise.sets ? 'opacity-50 cursor-not-allowed' : ''}">
+              Iniciar
+            </button>
+            <button onclick="pauseExercise(${exercise.id})" class="bg-gray-500 text-white p-2 rounded hover:bg-gray-600 ${!exercise.isRunning || exercise.completedSets >= exercise.sets ? 'opacity-50 cursor-not-allowed' : ''}">
+              Pausar
+            </button>
+            <button onclick="resetExercise(${exercise.id})" class="bg-purple-500 text-white p-2 rounded hover:bg-purple-600">
+              Reiniciar
+            </button>
+            <button onclick="editExercise(${exercise.id})" class="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600 ${exercise.isRunning ? 'opacity-50 cursor-not-allowed' : ''}">
+              Editar
+            </button>
+            <button onclick="deleteExercise(${exercise.id})" class="bg-red-500 text-white p-2 rounded hover:bg-red-600">
+              Eliminar
+            </button>
+          </div>
         `;
         exerciseList.appendChild(div);
       });
-    }
-
-    function completeSet(id) {
-      const exercise = exercises.find(ex => ex.id === id);
-      if (exercise.completedSets < exercise.sets) {
-        exercise.completedSets++;
-        localStorage.setItem('exercises', JSON.stringify(exercises));
-        renderExercises();
-        if (exercise.rest > 0) {
-          startTimer(id, exercise.rest);
-        }
-      }
-    }
-
-    function deleteExercise(id) {
-      exercises = exercises.filter(ex => ex.id !== id);
-      localStorage.setItem('exercises', JSON.stringify(exercises));
-      renderExercises();
-    }
-
-    function startTimer(id, seconds) {
-      let timeLeft = seconds;
-      const timerDisplay = document.getElementById(`timer-${id}`);
-      timerDisplay.textContent = `Descanso: ${timeLeft}s`;
-      const interval = setInterval(() => {
-        timeLeft--;
-        timerDisplay.textContent = `Descanso: ${timeLeft}s`;
-        if (timeLeft <= 0) {
-          clearInterval(interval);
-          timerDisplay.textContent = '';
-          new Audio('https://www.soundjay.com/buttons/beep-01a.mp3').play();
-        }
-      }, 1000);
     }
 
     // Cargar nombre al iniciar
