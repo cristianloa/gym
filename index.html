@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control de Ejercicios</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <style>
     .timer-container {
       position: relative;
@@ -120,28 +121,6 @@
     .overlay.open {
       display: block;
     }
-    .hamburger {
-      display: none;
-    }
-    @media (max-width: 768px) {
-      .hamburger {
-        display: block;
-      }
-      .nav-links {
-        display: none;
-      }
-      .main-content {
-        margin-top: 4rem; /* Espacio para la barra de navegación fija */
-      }
-    }
-    @media (min-width: 769px) {
-      .off-canvas-menu {
-        display: none;
-      }
-      .nav-links {
-        display: flex;
-      }
-    }
     .play-pause-btn {
       font-size: 1.5rem;
       cursor: pointer;
@@ -149,30 +128,26 @@
     .volume-slider {
       width: 100px;
     }
+    .main-content {
+      margin-top: 4rem; /* Espacio para la barra de navegación fija */
+    }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
   <!-- Menú de navegación -->
   <nav class="nav-container">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-      <!-- Logo -->
+      <!-- Logo y hamburguesa -->
       <div class="flex items-center">
-        <img src="https://via.placeholder.com/50" alt="Logo" class="h-10 w-10 mr-2">
+        <button id="hamburger" class="text-2xl mr-2">☰</button>
+        <i class="fas fa-dumbbell text-4xl text-blue-500 mr-2"></i>
         <span class="text-xl font-bold">Control de Ejercicios</span>
       </div>
-      <!-- Enlaces en pantallas grandes -->
-      <div class="nav-links flex items-center space-x-4">
-        <a href="#" class="text-gray-700 hover:text-blue-500">Inicio</a>
-        <a href="#" class="text-gray-700 hover:text-blue-500">Ejercicios</a>
-        <a href="#" class="text-gray-700 hover:text-blue-500">Acerca</a>
-        <span id="play-pause" class="play-pause-btn">▶️</span>
-        <input type="range" id="volume" class="volume-slider" min="0" max="100" value="50">
-      </div>
-      <!-- Botón hamburguesa en móviles -->
-      <button id="hamburger" class="hamburger text-2xl md:hidden">☰</button>
+      <!-- Botón de play/pause siempre visible -->
+      <span id="play-pause" class="play-pause-btn">▶️</span>
     </div>
   </nav>
-  <!-- Menú off-canvas para móviles -->
+  <!-- Menú off-canvas -->
   <div id="off-canvas" class="off-canvas-menu">
     <div class="flex justify-between items-center mb-4">
       <span class="text-xl font-bold">Menú</span>
@@ -182,14 +157,16 @@
       <a href="#" class="text-gray-700 hover:text-blue-500">Inicio</a>
       <a href="#" class="text-gray-700 hover:text-blue-500">Ejercicios</a>
       <a href="#" class="text-gray-700 hover:text-blue-500">Acerca</a>
+      <button id="radio-station" class="text-gray-700 hover:text-blue-500 text-left">Fitness Rock Radio</button>
       <div class="flex items-center space-x-4">
-        <span id="mobile-play-pause" class="play-pause-btn">▶️</span>
-        <input type="range" id="mobile-volume" class="volume-slider" min="0" max="100" value="50">
+        <input type="range" id="volume" class="volume-slider" min="0" max="100" value="50">
       </div>
     </nav>
   </div>
-  <!-- Overlay para móviles -->
+  <!-- Overlay -->
   <div id="overlay" class="overlay"></div>
+  <!-- Reproductor de audio -->
+  <audio id="radio-player" preload="none"></audio>
 
   <!-- Contenido principal -->
   <div class="main-content max-w-7xl w-full">
@@ -246,8 +223,9 @@
     let editingExerciseId = null;
     let activeTimers = {};
     let isPlaying = false;
+    const radioPlayer = document.getElementById('radio-player');
 
-    // Funciones del menú
+    // Funciones del menú y radio
     document.getElementById('hamburger').addEventListener('click', () => {
       document.getElementById('off-canvas').classList.add('open');
       document.getElementById('overlay').classList.add('open');
@@ -264,23 +242,26 @@
     });
 
     document.getElementById('play-pause').addEventListener('click', () => {
-      isPlaying = !isPlaying;
-      document.getElementById('play-pause').textContent = isPlaying ? '⏸️' : '▶️';
-      document.getElementById('mobile-play-pause').textContent = isPlaying ? '⏸️' : '▶️';
-    });
-
-    document.getElementById('mobile-play-pause').addEventListener('click', () => {
-      isPlaying = !isPlaying;
-      document.getElementById('play-pause').textContent = isPlaying ? '⏸️' : '▶️';
-      document.getElementById('mobile-play-pause').textContent = isPlaying ? '⏸️' : '▶️';
+      if (radioPlayer.src) {
+        if (isPlaying) {
+          radioPlayer.pause();
+        } else {
+          radioPlayer.play();
+        }
+        isPlaying = !isPlaying;
+        document.getElementById('play-pause').textContent = isPlaying ? '⏸️' : '▶️';
+      }
     });
 
     document.getElementById('volume').addEventListener('input', (e) => {
-      document.getElementById('mobile-volume').value = e.target.value;
+      radioPlayer.volume = e.target.value / 100;
     });
 
-    document.getElementById('mobile-volume').addEventListener('input', (e) => {
-      document.getElementById('volume').value = e.target.value;
+    document.getElementById('radio-station').addEventListener('click', () => {
+      radioPlayer.src = 'https://node-15.zeno.fm/fb9sp98vc5zuv';
+      radioPlayer.play();
+      isPlaying = true;
+      document.getElementById('play-pause').textContent = '⏸️';
     });
 
     // Funciones existentes
