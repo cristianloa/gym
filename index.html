@@ -131,6 +131,19 @@
     .main-content {
       margin-top: 4rem; /* Espacio para la barra de navegación fija */
     }
+    #radio-submenu {
+      display: none;
+      background-color: #ffffff;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    #radio-submenu.open {
+      display: block;
+    }
+    #radio-submenu button {
+      margin-left: 0.5rem; /* ml-2 */
+    }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
@@ -157,7 +170,14 @@
       <a href="#" class="text-gray-700 hover:text-blue-500">Inicio</a>
       <a href="#" class="text-gray-700 hover:text-blue-500">Ejercicios</a>
       <a href="#" class="text-gray-700 hover:text-blue-500">Acerca</a>
-      <button id="radio-station" class="text-gray-700 hover:text-blue-500 text-left">Fitness Rock Radio</button>
+      <button id="radio-station" class="text-gray-700 hover:text-blue-500 text-left">Radio</button>
+      <div id="radio-submenu" class="flex flex-col space-y-2">
+        <button id="radio-station-1" class="text-gray-700 hover:text-blue-500 text-left">• Rock Fitness</button>
+        <button id="radio-station-2" class="text-gray-700 hover:text-blue-500 text-left">• Jazz</button>
+        <button id="radio-station-3" class="text-gray-700 hover:text-blue-500 text-left">• Cumbia</button>
+        <button id="radio-station-4" class="text-gray-700 hover:text-blue-500 text-left">• Pop</button>
+        <button id="radio-station-5" class="text-gray-700 hover:text-blue-500 text-left">• Clásica</button>
+      </div>
       <div class="flex items-center space-x-4">
         <input type="range" id="volume" class="volume-slider" min="0" max="100" value="50">
       </div>
@@ -223,7 +243,15 @@
     let editingExerciseId = null;
     let activeTimers = {};
     let isPlaying = false;
+    let currentStation = 'Rock Fitness';
     const radioPlayer = document.getElementById('radio-player');
+    const radioStations = [
+      { id: 1, name: 'Rock Fitness', url: 'https://node-15.zeno.fm/fb9sp98vc5zuv' },
+      { id: 2, name: 'LOFI', url: 'https://ec3.yesstreaming.net:3755/stream' },
+      { id: 3, name: 'Oxígeno', url: 'https://mdstrm.com/audio/5fab0687bcd6c2389ee9480c/icecast.audio' },
+      { id: 4, name: 'Magica', url: 'https://mdstrm.com/audio/6839e28eb3fdc597ac2e2e43/icecast.audio?property=aiir&_=224873' },
+      { id: 5, name: 'Planeta', url: 'https://mdstrm.com/audio/6839e274f40e6b9832e37633/icecast.audio?property=aiir&_=481938' }
+    ];
 
     // Funciones del menú y radio
     document.getElementById('hamburger').addEventListener('click', () => {
@@ -234,16 +262,24 @@
     document.getElementById('close-menu').addEventListener('click', () => {
       document.getElementById('off-canvas').classList.remove('open');
       document.getElementById('overlay').classList.remove('open');
+      document.getElementById('radio-submenu').classList.remove('open');
     });
 
     document.getElementById('overlay').addEventListener('click', () => {
       document.getElementById('off-canvas').classList.remove('open');
       document.getElementById('overlay').classList.remove('open');
+      document.getElementById('radio-submenu').classList.remove('open');
+    });
+
+    document.getElementById('radio-station').addEventListener('click', () => {
+      const submenu = document.getElementById('radio-submenu');
+      submenu.classList.toggle('open');
     });
 
     document.getElementById('play-pause').addEventListener('click', () => {
       if (!radioPlayer.src) {
-        radioPlayer.src = 'https://node-15.zeno.fm/fb9sp98vc5zuv';
+        radioPlayer.src = radioStations[0].url;
+        currentStation = radioStations[0].name;
         radioPlayer.play();
         isPlaying = true;
         document.getElementById('play-pause').textContent = '⏸️';
@@ -262,19 +298,15 @@
       radioPlayer.volume = e.target.value / 100;
     });
 
-    document.getElementById('radio-station').addEventListener('click', () => {
-      if (!radioPlayer.src) {
-        radioPlayer.src = 'https://node-15.zeno.fm/fb9sp98vc5zuv';
-      }
-      if (!isPlaying) {
+    radioStations.forEach(station => {
+      document.getElementById(`radio-station-${station.id}`).addEventListener('click', () => {
+        radioPlayer.src = station.url;
+        currentStation = station.name;
         radioPlayer.play();
         isPlaying = true;
         document.getElementById('play-pause').textContent = '⏸️';
-      } else {
-        radioPlayer.pause();
-        isPlaying = false;
-        document.getElementById('play-pause').textContent = '▶️';
-      }
+        document.getElementById('radio-submenu').classList.remove('open');
+      });
     });
 
     // Funciones existentes
