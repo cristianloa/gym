@@ -242,7 +242,12 @@
     });
 
     document.getElementById('play-pause').addEventListener('click', () => {
-      if (radioPlayer.src) {
+      if (!radioPlayer.src) {
+        radioPlayer.src = 'https://node-15.zeno.fm/fb9sp98vc5zuv';
+        radioPlayer.play();
+        isPlaying = true;
+        document.getElementById('play-pause').textContent = '⏸️';
+      } else {
         if (isPlaying) {
           radioPlayer.pause();
         } else {
@@ -258,10 +263,18 @@
     });
 
     document.getElementById('radio-station').addEventListener('click', () => {
-      radioPlayer.src = 'https://team-data.ba:9040/;';
-      radioPlayer.play();
-      isPlaying = true;
-      document.getElementById('play-pause').textContent = '⏸️';
+      if (!radioPlayer.src) {
+        radioPlayer.src = 'https://node-15.zeno.fm/fb9sp98vc5zuv';
+      }
+      if (!isPlaying) {
+        radioPlayer.play();
+        isPlaying = true;
+        document.getElementById('play-pause').textContent = '⏸️';
+      } else {
+        radioPlayer.pause();
+        isPlaying = false;
+        document.getElementById('play-pause').textContent = '▶️';
+      }
     });
 
     // Funciones existentes
