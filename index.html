@@ -43,7 +43,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -30%);
-      font-size: 1rem; /* text-xl */
+      font-size: 1rem; /* text-base */
       font-weight: bold;
       color: #3b82f6; /* blue-500 */
       z-index: 10;
@@ -53,7 +53,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -30%);
-      font-size: 1rem; /* text-xl */
+      font-size: 1rem; /* text-base */
       font-weight: bold;
       color: #ef4444; /* red-500 */
       z-index: 10;
@@ -82,44 +82,153 @@
       stroke-linecap: round;
       transition: stroke-dashoffset linear;
     }
+    /* Estilos para el menú responsivo */
+    .nav-container {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 1000;
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .off-canvas-menu {
+      position: fixed;
+      top: 0;
+      left: -100%;
+      width: 75%;
+      max-width: 300px;
+      height: 100%;
+      background-color: #ffffff;
+      transition: left 0.3s ease-in-out;
+      z-index: 2000;
+      padding: 1rem;
+      box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+    }
+    .off-canvas-menu.open {
+      left: 0;
+    }
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1500;
+      display: none;
+    }
+    .overlay.open {
+      display: block;
+    }
+    .hamburger {
+      display: none;
+    }
+    @media (max-width: 768px) {
+      .hamburger {
+        display: block;
+      }
+      .nav-links {
+        display: none;
+      }
+      .main-content {
+        margin-top: 4rem; /* Espacio para la barra de navegación fija */
+      }
+    }
+    @media (min-width: 769px) {
+      .off-canvas-menu {
+        display: none;
+      }
+      .nav-links {
+        display: flex;
+      }
+    }
+    .play-pause-btn {
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    .volume-slider {
+      width: 100px;
+    }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
-  <h1 class="text-3xl font-bold mb-6">Control de Ejercicios</h1>
-  
-  <!-- Formulario para agregar/editar ejercicio -->
-  <div class="w-full max-w-md bg-white p-6 rounded-lg shadow-md mb-6">
-    <h2 id="formTitle" class="text-xl font-semibold mb-4">Agregar Ejercicio</h2>
-    <div class="space-y-4">
-      <input id="userName" type="text" placeholder="Tu nombre" class="w-full p-2 border rounded">
-      <select id="category" onchange="updateExercises()" class="w-full p-2 border rounded">
-        <option value="">Selecciona una categoría</option>
-        <option value="Pierna">Pierna</option>
-        <option value="Pecho">Pecho</option>
-        <option value="Espalda">Espalda</option>
-        <option value="Brazos">Brazos</option>
-        <option value="Core">Core</option>
-        <option value="Otro">Otro (manual)</option>
-      </select>
-      <select id="exerciseName" class="w-full p-2 border rounded hidden" onchange="checkManualInput()">
-        <option value="">Selecciona un ejercicio</option>
-      </select>
-      <input id="manualExercise" type="text" placeholder="Nombre del ejercicio (si es manual)" class="w-full p-2 border rounded hidden">
-      <input id="sets" type="number" placeholder="Series" min="1" class="w-full p-2 border rounded">
-      <input id="reps" type="number" placeholder="Repeticiones" min="1" class="w-full p-2 border rounded">
-      <input id="repDuration" type="number" placeholder="Duración por repetición (segundos)" min="1" value="5" class="w-full p-2 border rounded">
-      <input id="rest" type="number" step="0.1" placeholder="Descanso (minutos)" min="0" value="1" class="w-full p-2 border rounded">
-      <div class="flex space-x-2">
-        <button id="submitButton" onclick="submitExercise()" class="flex-1 bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Agregar</button>
-        <button id="cancelButton" onclick="cancelEdit()" class="flex-1 bg-gray-500 text-white p-2 rounded hover:bg-gray-600 hidden">Cancelar</button>
+  <!-- Menú de navegación -->
+  <nav class="nav-container">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      <!-- Logo -->
+      <div class="flex items-center">
+        <img src="https://via.placeholder.com/50" alt="Logo" class="h-10 w-10 mr-2">
+        <span class="text-xl font-bold">Control de Ejercicios</span>
+      </div>
+      <!-- Enlaces en pantallas grandes -->
+      <div class="nav-links flex items-center space-x-4">
+        <a href="#" class="text-gray-700 hover:text-blue-500">Inicio</a>
+        <a href="#" class="text-gray-700 hover:text-blue-500">Ejercicios</a>
+        <a href="#" class="text-gray-700 hover:text-blue-500">Acerca</a>
+        <span id="play-pause" class="play-pause-btn">▶️</span>
+        <input type="range" id="volume" class="volume-slider" min="0" max="100" value="50">
+      </div>
+      <!-- Botón hamburguesa en móviles -->
+      <button id="hamburger" class="hamburger text-2xl md:hidden">☰</button>
+    </div>
+  </nav>
+  <!-- Menú off-canvas para móviles -->
+  <div id="off-canvas" class="off-canvas-menu">
+    <div class="flex justify-between items-center mb-4">
+      <span class="text-xl font-bold">Menú</span>
+      <button id="close-menu" class="text-2xl">✕</button>
+    </div>
+    <nav class="flex flex-col space-y-4">
+      <a href="#" class="text-gray-700 hover:text-blue-500">Inicio</a>
+      <a href="#" class="text-gray-700 hover:text-blue-500">Ejercicios</a>
+      <a href="#" class="text-gray-700 hover:text-blue-500">Acerca</a>
+      <div class="flex items-center space-x-4">
+        <span id="mobile-play-pause" class="play-pause-btn">▶️</span>
+        <input type="range" id="mobile-volume" class="volume-slider" min="0" max="100" value="50">
+      </div>
+    </nav>
+  </div>
+  <!-- Overlay para móviles -->
+  <div id="overlay" class="overlay"></div>
+
+  <!-- Contenido principal -->
+  <div class="main-content max-w-7xl w-full">
+    <h1 class="text-3xl font-bold mb-6">Control de Ejercicios</h1>
+    
+    <!-- Formulario para agregar/editar ejercicio -->
+    <div class="w-full max-w-md bg-white p-6 rounded-lg shadow-md mb-6 mx-auto">
+      <h2 id="formTitle" class="text-xl font-semibold mb-4">Agregar Ejercicio</h2>
+      <div class="space-y-4">
+        <input id="userName" type="text" placeholder="Tu nombre" class="w-full p-2 border rounded">
+        <select id="category" onchange="updateExercises()" class="w-full p-2 border rounded">
+          <option value="">Selecciona una categoría</option>
+          <option value="Pierna">Pierna</option>
+          <option value="Pecho">Pecho</option>
+          <option value="Espalda">Espalda</option>
+          <option value="Brazos">Brazos</option>
+          <option value="Core">Core</option>
+          <option value="Otro">Otro (manual)</option>
+        </select>
+        <select id="exerciseName" class="w-full p-2 border rounded hidden" onchange="checkManualInput()">
+          <option value="">Selecciona un ejercicio</option>
+        </select>
+        <input id="manualExercise" type="text" placeholder="Nombre del ejercicio (si es manual)" class="w-full p-2 border rounded hidden">
+        <input id="sets" type="number" placeholder="Series" min="1" class="w-full p-2 border rounded">
+        <input id="reps" type="number" placeholder="Repeticiones" min="1" class="w-full p-2 border rounded">
+        <input id="repDuration" type="number" placeholder="Duración por repetición (segundos)" min="1" value="5" class="w-full p-2 border rounded">
+        <input id="rest" type="number" step="0.1" placeholder="Descanso (minutos)" min="0" value="1" class="w-full p-2 border rounded">
+        <div class="flex space-x-2">
+          <button id="submitButton" onclick="submitExercise()" class="flex-1 bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Agregar</button>
+          <button id="cancelButton" onclick="cancelEdit()" class="flex-1 bg-gray-500 text-white p-2 rounded hover:bg-gray-600 hidden">Cancelar</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Lista de ejercicios -->
-  <div class="w-full max-w-md">
-    <h2 id="routineTitle" class="text-2xl font-semibold mb-4">Tu Rutina</h2>
-    <div id="exerciseList" class="space-y-4"></div>
+    <!-- Lista de ejercicios -->
+    <div class="w-full max-w-md mx-auto">
+      <h2 id="routineTitle" class="text-2xl font-semibold mb-4">Tu Rutina</h2>
+      <div id="exerciseList" class="space-y-4"></div>
+    </div>
   </div>
 
   <script>
@@ -136,7 +245,45 @@
     let userName = localStorage.getItem('userName') || '';
     let editingExerciseId = null;
     let activeTimers = {};
+    let isPlaying = false;
 
+    // Funciones del menú
+    document.getElementById('hamburger').addEventListener('click', () => {
+      document.getElementById('off-canvas').classList.add('open');
+      document.getElementById('overlay').classList.add('open');
+    });
+
+    document.getElementById('close-menu').addEventListener('click', () => {
+      document.getElementById('off-canvas').classList.remove('open');
+      document.getElementById('overlay').classList.remove('open');
+    });
+
+    document.getElementById('overlay').addEventListener('click', () => {
+      document.getElementById('off-canvas').classList.remove('open');
+      document.getElementById('overlay').classList.remove('open');
+    });
+
+    document.getElementById('play-pause').addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      document.getElementById('play-pause').textContent = isPlaying ? '⏸️' : '▶️';
+      document.getElementById('mobile-play-pause').textContent = isPlaying ? '⏸️' : '▶️';
+    });
+
+    document.getElementById('mobile-play-pause').addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      document.getElementById('play-pause').textContent = isPlaying ? '⏸️' : '▶️';
+      document.getElementById('mobile-play-pause').textContent = isPlaying ? '⏸️' : '▶️';
+    });
+
+    document.getElementById('volume').addEventListener('input', (e) => {
+      document.getElementById('mobile-volume').value = e.target.value;
+    });
+
+    document.getElementById('mobile-volume').addEventListener('input', (e) => {
+      document.getElementById('volume').value = e.target.value;
+    });
+
+    // Funciones existentes
     function updateExercises() {
       const category = document.getElementById('category').value;
       const exerciseSelect = document.getElementById('exerciseName');
